@@ -4,6 +4,7 @@
 
 from __future__ import absolute_import
 
+import os
 import re
 from uuid import uuid4
 from hashlib import md5
@@ -475,10 +476,15 @@ class CertValidatingHTTPSConnection(httplib.HTTPConnection):
 
     def connect(self):
         httplib.HTTPConnection.connect(self)
-        self.sock = ssl.wrap_socket(self.sock, keyfile=self.key_file,
-                                    certfile=self.cert_file,
-                                    cert_reqs=self.cert_reqs,
-                                    ca_certs=self.ca_certs)
+        kwargs = {
+            'keyfile': self.key_file,
+            'certfile': self.cert_file,
+            'cert_reqs': self.cert_reqs,
+            'ca_certs': self.ca_certs
+        }
+        if os.getenv('FISKAL_SSL_VERSION'):
+            kwargs['ssl_version'] = os.getenv('FISKAL_SSL_VERSION')
+        self.sock = ssl.wrap_socket(self.sock, **kwargs)
         if self.cert_reqs & ssl.CERT_REQUIRED:
             cert = self.sock.getpeercert()
             hostname = self.host.split(':', 0)[0]
